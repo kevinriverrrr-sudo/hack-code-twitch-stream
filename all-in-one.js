@@ -10,7 +10,7 @@ process.on('uncaughtException', e => console.error('[UNCAUGHT]', e.message || e)
 process.on('unhandledRejection', e => console.error('[UNHANDLED]', e));
 
 // ========== DATABASE ==========
-const db = new Database('/home/z/my-project/game.db');
+const db = new Database(process.env.DB_PATH || '/app/data/game.db');
 db.pragma('journal_mode = WAL');
 db.exec(`
   CREATE TABLE IF NOT EXISTS players (
@@ -92,7 +92,7 @@ const state = {
 
 // ========== AI PASSWORD GENERATION ==========
 const FW_URL = 'https://api.fireworks.ai/inference/v1/chat/completions';
-const FW_KEY = 'fw_BbPBdfe14cvqLmodY74kEN';
+const FW_KEY = process.env.FW_KEY || 'fw_BbPBdfe14cvqLmodY74kEN';
 const FW_MODEL = 'accounts/fireworks/models/gpt-oss-20b';
 
 const FALLBACK_PASSWORDS = [
@@ -162,11 +162,11 @@ async function generatePassword() {
 
 // ========== TWITCH CHAT ==========
 const twitchClient = new tmi.Client({
-  channels: ['mazafakezo'],
+  channels: [process.env.TWITCH_CHANNEL || 'mazafakezo'],
   connection: { reconnect: true, maxReconnectAttempts: Infinity },
 });
 
-twitchClient.on('connected', () => console.log('[TWITCH] Connected to chat #mazafakezo'));
+twitchClient.on('connected', () => console.log(`[TWITCH] Connected to chat #${process.env.TWITCH_CHANNEL || 'mazafakezo'}`));
 twitchClient.on('disconnected', () => console.log('[TWITCH] Disconnected from chat'));
 
 twitchClient.on('message', (channel, tags, message, self) => {
@@ -362,9 +362,19 @@ const fontsLoaded = {
   main: false,
 };
 try {
-  registerFont('/usr/share/fonts/truetype/chinese/NotoSansSC[wght].ttf', { family: 'Noto Sans SC' });
+  registerFont('/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', { family: 'Noto Sans SC' });
   fontsLoaded.main = true;
-} catch(e) {}
+} catch(e) {
+  try {
+    registerFont('/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc', { family: 'Noto Sans SC' });
+    fontsLoaded.main = true;
+  } catch(e2) {
+    try {
+      registerFont('/usr/share/fonts/truetype/chinese/NotoSansSC[wght].ttf', { family: 'Noto Sans SC' });
+      fontsLoaded.main = true;
+    } catch(e3) {}
+  }
+}
 try {
   registerFont('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', { family: 'DejaVu Sans' });
 } catch(e) {}
@@ -1152,7 +1162,7 @@ function roundRect(ctx, x, y, w, h, r) {
 let ffmpegProc = null;
 let streamActive = false;
 let frameCount = 0;
-const TWITCH_STREAM_KEY = 'live_1510273597_jnmGuetTXLqxOlebzYkguxnOvGBODQ';
+const TWITCH_STREAM_KEY = process.env.TWITCH_STREAM_KEY || 'live_1510273597_jnmGuetTXLqxOlebzYkguxnOvGBODQ';
 
 function spawnFFmpeg() {
   console.log('[STREAM] Spawning FFmpeg for Twitch...');
@@ -1201,7 +1211,7 @@ app.get('/api/state', (req, res) => res.json({
 }));
 app.use(express.static('public'));
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // ========== START ==========
 async function start() {
