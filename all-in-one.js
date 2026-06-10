@@ -10,7 +10,11 @@ process.on('uncaughtException', e => console.error('[UNCAUGHT]', e.message || e)
 process.on('unhandledRejection', e => console.error('[UNHANDLED]', e));
 
 // ========== DATABASE ==========
-const db = new Database(process.env.DB_PATH || '/app/data/game.db');
+const path = require('path');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'data', 'game.db');
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) { fs.mkdirSync(dbDir, { recursive: true }); }
+const db = new Database(dbPath);
 db.pragma('journal_mode = WAL');
 db.exec(`
   CREATE TABLE IF NOT EXISTS players (
