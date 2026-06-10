@@ -4,13 +4,14 @@
   "private": true,
   "scripts": {
     "start": "node all-in-one.js",
-    "dev": "node all-in-one.js"
+    "dev": "node all-in-one.js",
+    "build": "echo 'No build step needed'"
   },
   "dependencies": {
     "better-sqlite3": "^12.10.0",
     "canvas": "^3.2.3",
     "cors": "^2.8.6",
-    "express": "^5.2.1",
+    "express": "^4.21.2",
     "tmi.js": "^1.8.5"
   }
 }
