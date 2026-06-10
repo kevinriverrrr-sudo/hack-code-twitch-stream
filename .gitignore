@@ -1,0 +1,9 @@
+node_modules/
+game.db
+game.db-shm
+game.db-wal
+*.log
+*.png
+*.jpg
+.next/
+.env.local

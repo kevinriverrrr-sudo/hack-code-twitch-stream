@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Угадай Футболиста — LIVE</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;700&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: #0a0a0f;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      overflow: hidden;
+      width: 1280px;
+      height: 720px;
+    }
+    
+    .container {
+      width: 1280px;
+      height: 720px;
+      position: relative;
+      display: flex;
+    }
+    
+    /* Background effects */
+    .bg-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+    
+    .bg-circle {
+      position: absolute;
+      top: 50%;
+      left: 40%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 300px;
+      border: 1px solid rgba(0, 255, 136, 0.06);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    
+    .particle {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      background: rgba(0, 255, 136, 0.3);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: float 4s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); opacity: 0.3; }
+      50% { transform: translateY(-20px); opacity: 0.6; }
+    }
+    
+    /* Main area */
+    .game-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      position: relative;
+      z-index: 1;
+    }
+    
+    /* Top bar */
+    .top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 320px;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+    
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 51, 85, 0.15);
+      border: 1px solid rgba(255, 51, 85, 0.3);
+      border-radius: 20px;
+      padding: 4px 14px;
+    }
+    
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #ff3355;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .live-text {
+      color: #ff3355;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+    }
+    
+    .round-info {
+      color: rgba(255,255,255,0.4);
+      font-size: 12px;
+    }
+    
+    /* Title */
+    .game-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 36px;
+      font-weight: 900;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+    
+    .title-green {
+      color: #00ff88;
+      text-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+    }
+    
+    .title-white { color: #fff; }
+    
+    /* Category badge */
+    .category-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .badge-russian { background: rgba(255,68,68,0.15); border: 1px solid rgba(255,68,68,0.3); color: #ff4444; }
+    .badge-italian { background: rgba(0,204,102,0.15); border: 1px solid rgba(0,204,102,0.3); color: #00cc66; }
+    .badge-world { background: rgba(0,229,255,0.15); border: 1px solid rgba(0,229,255,0.3); color: #00e5ff; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Timer */
+    .timer {
+      font-family: 'Orbitron', monospace;
+      font-size: 64px;
+      font-weight: 900;
+      margin-bottom: 24px;
+      transition: color 0.3s;
+    }
+    
+    .timer-safe { color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.3); }
+    .timer-warning { color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.3); }
+    .timer-danger { color: #ff3355; text-shadow: 0 0 20px rgba(255,51,85,0.3); animation: urgentPulse 0.5s infinite; }
+    
+    @keyframes urgentPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    .timer-bar {
+      width: 280px;
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 30px;
+    }
+    
+    .timer-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.2s, background 0.3s;
+    }
+    
+    /* Question */
+    .question-box {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 750px;
+      text-align: center;
+      animation: questionIn 0.6s ease-out;
+    }
+    
+    @keyframes questionIn {
+      from { opacity: 0; transform: scale(0.85) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    
+    .question-text {
+      font-size: 26px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: #fff;
+    }
+    
+    /* Answer reveal */
+    .answer-reveal {
+      text-align: center;
+      animation: revealIn 0.5s ease-out;
+    }
+    
+    @keyframes revealIn {
+      from { opacity: 0; transform: scale(0.5); filter: blur(10px); }
+      to { opacity: 1; transform: scale(1); filter: blur(0); }
+    }
+    
+    .answer-label {
+      color: rgba(255,255,255,0.5);
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .answer-text {
+      font-family: 'Orbitron', monospace;
+      font-size: 48px;
+      font-weight: 900;
+      color: #00ff88;
+      text-shadow: 0 0 40px rgba(0,255,136,0.5);
+      margin-bottom: 20px;
+    }
+    
+    /* Winner */
+    .winner-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.05));
+      border: 1px solid rgba(255,215,0,0.3);
+      border-radius: 16px;
+      padding: 16px 24px;
+      animation: celebrateIn 0.5s ease-out;
+    }
+    
+    @keyframes celebrateIn {
+      from { opacity: 0; transform: scale(0.5); }
+      60% { transform: scale(1.1); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .winner-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid #ffd700;
+    }
+    
+    .winner-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffd700;
+    }
+    
+    .winner-points {
+      font-size: 14px;
+      color: rgba(255,215,0,0.7);
+    }
+    
+    .winner-trophy {
+      font-size: 36px;
+    }
+    
+    /* Winner message */
+    .winner-message {
+      margin-top: 12px;
+      padding: 12px 20px;
+      background: rgba(255,215,0,0.08);
+      border-left: 4px solid #ffd700;
+      border-radius: 0 8px 8px 0;
+      max-width: 500px;
+    }
+    
+    .winner-message-label {
+      font-size: 12px;
+      color: rgba(255,215,0,0.6);
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .winner-message-text {
+      font-size: 20px;
+      color: #ffd700;
+      font-weight: 600;
+    }
+    
+    /* Idle state */
+    .idle-ball {
+      font-size: 80px;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+    
+    .idle-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    
+    .idle-subtitle {
+      font-size: 16px;
+      color: rgba(255,255,255,0.4);
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 320px;
+      background: rgba(0,0,0,0.3);
+      border-left: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      gap: 16px;
+      z-index: 1;
+    }
+    
+    .sidebar-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: #00ff88;
+      text-align: center;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    
+    .leaderboard-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      border-left: 3px solid #00ff88;
+      transition: all 0.3s;
+    }
+    
+    .leaderboard-item.gold {
+      background: rgba(255,215,0,0.08);
+      border-left-color: #ffd700;
+    }
+    
+    .lb-rank {
+      width: 24px;
+      text-align: center;
+      font-weight: 900;
+      font-size: 16px;
+    }
+    
+    .rank-1 { color: #ffd700; }
+    .rank-2 { color: #c0c0c0; }
+    .rank-3 { color: #cd7f32; }
+    .rank-other { color: rgba(255,255,255,0.4); }
+    
+    .lb-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .lb-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+    
+    .lb-correct {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+    }
+    
+    .lb-score {
+      margin-left: auto;
+      font-weight: 700;
+      font-size: 16px;
+      color: #00d4aa;
+    }
+    
+    .no-players {
+      color: rgba(255,255,255,0.3);
+      text-align: center;
+      padding: 30px 0;
+      font-size: 14px;
+    }
+    
+    /* Info panel */
+    .info-panel {
+      background: rgba(255,255,255,0.03);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    
+    .info-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #00d4aa;
+      margin-bottom: 12px;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+    
+    .info-label { color: rgba(255,255,255,0.4); }
+    .info-value { color: #fff; font-weight: 600; }
+    .info-value-active { color: #00ff88; }
+    .info-value-waiting { color: #ff3355; }
+    
+    /* How to play */
+    .how-to-play {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      line-height: 1.8;
+    }
+    
+    /* Bottom bar */
+    .bottom-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0,0,0,0.7);
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+    
+    .bottom-live {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .bottom-dot {
+      width: 6px;
+      height: 6px;
+      background: #ff3355;
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    .bottom-text {
+      font-size: 11px;
+      color: rgba(255,255,255,0.4);
+      font-family: monospace;
+    }
+    
+    /* Confetti */
+    .confetti-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+      overflow: hidden;
+    }
+    
+    .confetti-piece {
+      position: absolute;
+      animation: confettiFall linear forwards;
+    }
+    
+    @keyframes confettiFall {
+      from { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      to { transform: translateY(740px) rotate(720deg); opacity: 0; }
+    }
+    
+    /* Hint text */
+    .hint-text {
+      margin-top: 16px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.3);
+    }
+    
+    /* Time up emoji */
+    .emoji-big {
+      font-size: 70px;
+      margin-bottom: 20px;
+    }
+    
+    .result-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    
+    .result-correct { color: #00ff88; }
+    .result-timeout { color: #ff3355; }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="bg-grid"></div>
+    <div class="bg-circle"></div>
+    <div id="particles"></div>
+    <div id="confetti"></div>
+    
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        <span class="live-text">LIVE</span>
+      </div>
+      <span class="round-info" id="roundInfo">Раунд 1</span>
+    </div>
+    
+    <!-- Main game area -->
+    <div class="game-area" id="gameArea">
+      <!-- Will be filled by JS -->
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-title">🏆 ЛИДЕРБОРД</div>
+      <div id="leaderboard">
+        <div class="no-players">Пока нет игроков</div>
+      </div>
+      
+      <div class="info-panel">
+        <div class="info-title">📊 Статистика</div>
+        <div class="info-row">
+          <span class="info-label">Раунд</span>
+          <span class="info-value" id="statRound">1</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Вопросов</span>
+          <span class="info-value" id="statQuestions">0</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Игроков</span>
+          <span class="info-value" id="statPlayers">0</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Статус</span>
+          <span class="info-value info-value-waiting" id="statStatus">Ожидание</span>
+        </div>
+      </div>
+      
+      <div class="info-panel">
+        <div class="info-title">🎮 Как играть</div>
+        <div class="how-to-play">
+          📝 Читайте подсказку на экране<br>
+          💬 Пишите имя футболиста в чат<br>
+          ⚡ Быстрый ответ = больше очков!<br>
+          🏆 Первые 10 сек: +50 бонус<br>
+          ⏰ До 20 сек: +25 бонус
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bottom bar -->
+    <div class="bottom-bar">
+      <div class="bottom-live">
+        <div class="bottom-dot"></div>
+        <span class="bottom-text">LIVE</span>
+      </div>
+      <span class="bottom-text">Угадай Футболиста • Трансляция</span>
+      <span class="bottom-text" id="clock"></span>
+    </div>
+  </div>
+
+  <script>
+    // ============ STATE ============
+    let gameState = null;
+    let prevPhase = 'idle';
+    let questionKey = 0;
+    let timerInterval = null;
+    let timeLeft = 30;
+    
+    // ============ PARTICLES ============
+    function initParticles() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.top = Math.random() * 100 + '%';
+        p.style.animationDelay = Math.random() * 4 + 's';
+        p.style.animationDuration = (3 + Math.random() * 3) + 's';
+        container.appendChild(p);
+      }
+    }
+    
+    // ============ CONFETTI ============
+    function showConfetti() {
+      const container = document.getElementById('confetti');
+      container.innerHTML = '';
+      const colors = ['#ff3355', '#00ff88', '#4488ff', '#ffd700', '#ff66aa', '#66ffcc'];
+      for (let i = 0; i < 50; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left = Math.random() * 100 + '%';
+        piece.style.top = '-20px';
+        piece.style.width = (6 + Math.random() * 8) + 'px';
+        piece.style.height = (6 + Math.random() * 8) + 'px';
+        piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+        piece.style.animationDuration = (2 + Math.random() * 3) + 's';
+        piece.style.animationDelay = Math.random() * 2 + 's';
+        container.appendChild(piece);
+      }
+      setTimeout(() => { container.innerHTML = ''; }, 5000);
+    }
+    
+    // ============ CLOCK ============
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').textContent = now.toLocaleTimeString('ru-RU');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+    
+    // ============ RENDER ============
+    function render() {
+      if (!gameState) return;
+      
+      const area = document.getElementById('gameArea');
+      const lb = document.getElementById('leaderboard');
+      
+      // Update sidebar stats
+      document.getElementById('statRound').textContent = gameState.roundNumber || 1;
+      document.getElementById('statQuestions').textContent = gameState.questionsAsked || 0;
+      document.getElementById('statPlayers').textContent = gameState.topPlayers?.length || 0;
+      document.getElementById('roundInfo').textContent = `Раунд ${gameState.roundNumber || 1} • Вопрос ${gameState.questionNumber || 0}/${gameState.totalQuestionsInRound || 10}`;
+      
+      const statusEl = document.getElementById('statStatus');
+      if (gameState.isGameActive) {
+        statusEl.textContent = 'Активна';
+        statusEl.className = 'info-value info-value-active';
+      } else {
+        statusEl.textContent = 'Ожидание';
+        statusEl.className = 'info-value info-value-waiting';
+      }
+      
+      // Leaderboard
+      if (gameState.topPlayers && gameState.topPlayers.length > 0) {
+        lb.innerHTML = gameState.topPlayers.map((p, i) => {
+          const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+          const goldClass = i === 0 ? ' gold' : '';
+          return `<div class="leaderboard-item${goldClass}">
+            <span class="lb-rank ${rankClass}">${i + 1}</span>
+            <img class="lb-avatar" src="${p.avatarUrl}" alt="">
+            <div>
+              <div class="lb-name">${p.username}</div>
+              <div class="lb-correct">${p.correctAnswers} верных</div>
+            </div>
+            <span class="lb-score">${p.score}</span>
+          </div>`;
+        }).join('');
+      } else {
+        lb.innerHTML = '<div class="no-players">Пока нет игроков</div>';
+      }
+      
+      // Game area
+      if (!gameState.isGameActive) {
+        area.innerHTML = `
+          <div class="idle-ball">⚽</div>
+          <div class="idle-title">Ожидание начала игры</div>
+          <div class="idle-subtitle">Трансляция активна</div>
+        `;
+        return;
+      }
+      
+      const q = gameState.currentQuestion;
+      const phase = gameState.phase;
+      
+      if (phase === 'question' && q) {
+        const catClass = q.category === 'russian' ? 'badge-russian' : q.category === 'italian' ? 'badge-italian' : 'badge-world';
+        const catLabel = q.category === 'russian' ? '🇷🇺 Российский футбол' : q.category === 'italian' ? '🇮🇹 Итальянский футбол' : '🌍 Мировой футбол';
+        
+        area.innerHTML = `
+          <div class="category-badge ${catClass}">${catLabel}</div>
+          <div class="timer timer-safe" id="timerDisplay">30</div>
+          <div class="timer-bar"><div class="timer-fill" id="timerFill" style="width:100%;background:#00ff88"></div></div>
+          <div class="question-box">
+            <div class="question-text">${q.text}</div>
+          </div>
+          <div class="hint-text">Пишите ответ в чате YouTube!</div>
+        `;
+        startTimer();
+      } else if (phase === 'revealed' && q) {
+        stopTimer();
+        const winner = gameState.lastWinner;
+        if (winner) {
+          if (prevPhase === 'question') showConfetti();
+          area.innerHTML = `
+            <div class="answer-reveal">
+              <div class="emoji-big">🎉</div>
+              <div class="result-title result-correct">ПРАВИЛЬНО!</div>
+              <div class="answer-label">Ответ:</div>
+              <div class="answer-text">${q.answer}</div>
+              <div class="winner-box">
+                <img class="winner-avatar" src="${winner.avatarUrl}" alt="">
+                <div>
+                  <div class="winner-name">${winner.username}</div>
+                  <div class="winner-points">+${winner.score} очков</div>
+                </div>
+                <div class="winner-trophy">🏆</div>
+              </div>
+            </div>
+          `;
+        } else {
+          area.innerHTML = `
+            <div class="answer-reveal">
+              <div class="emoji-big">😔</div>
+              <div class="result-title result-timeout">Время вышло!</div>
+              <div class="answer-label">Правильный ответ:</div>
+              <div class="answer-text">${q.answer}</div>
+            </div>
+          `;
+        }
+      } else if (phase === 'winner-message' && gameState.lastWinner && gameState.winnerMessage) {
+        const winner = gameState.lastWinner;
+        area.innerHTML = `
+          <div class="answer-reveal">
+            <div class="winner-box">
+              <img class="winner-avatar" src="${winner.avatarUrl}" alt="">
+              <div>
+                <div class="winner-name">${winner.username}</div>
+                <div class="winner-points">Победитель</div>
+              </div>
+            </div>
+            <div class="winner-message">
+              <div class="winner-message-label">💬 Сообщение победителя:</div>
+              <div class="winner-message-text">"${gameState.winnerMessage}"</div>
+            </div>
+          </div>
+        `;
+      } else {
+        area.innerHTML = `
+          <div class="idle-ball">⚽</div>
+          <div class="idle-title">Следующий вопрос...</div>
+          <div class="idle-subtitle">Подготовка</div>
+        `;
+      }
+      
+      prevPhase = phase;
+    }
+    
+    // ============ TIMER ============
+    function startTimer() {
+      stopTimer();
+      if (!gameState?.questionStartTime) return;
+      
+      timerInterval = setInterval(() => {
+        if (!gameState?.questionStartTime) return;
+        const elapsed = (Date.now() - gameState.questionStartTime) / 1000;
+        const remaining = Math.max(0, gameState.questionDuration - elapsed);
+        timeLeft = Math.ceil(remaining);
+        
+        const display = document.getElementById('timerDisplay');
+        const fill = document.getElementById('timerFill');
+        if (display && fill) {
+          display.textContent = timeLeft;
+          const pct = (remaining / gameState.questionDuration) * 100;
+          fill.style.width = pct + '%';
+          
+          if (remaining <= 5) {
+            display.className = 'timer timer-danger';
+            fill.style.background = '#ff3355';
+          } else if (remaining <= 15) {
+            display.className = 'timer timer-warning';
+            fill.style.background = '#ffd700';
+          } else {
+            display.className = 'timer timer-safe';
+            fill.style.background = '#00ff88';
+          }
+        }
+        
+        if (remaining <= 0) {
+          stopTimer();
+          fetch('/api/game-control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'reveal' }),
+          });
+        }
+      }, 200);
+    }
+    
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+    
+    // ============ POLLING ============
+    async function pollGameState() {
+      try {
+        const res = await fetch('/api/game-state');
+        const data = await res.json();
+        if (data.success) {
+          gameState = data.gameState;
+          render();
+        }
+      } catch (e) {
+        console.error('Poll error:', e);
+      }
+    }
+    
+    // Init
+    initParticles();
+    pollGameState();
+    setInterval(pollGameState, 1000);
+  </script>
+</body>
+</html>
